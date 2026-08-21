@@ -130,13 +130,6 @@ sudo ./deploy/install.sh portal --user "$USER" --tls-nginx portal.example.com \
 - Token 鉴权不会加密 HTTP 流量；8080 应保持回环监听，通过上述 HTTPS 反代、SSH
   隧道或 VPN 访问。
 
-### 可选：在开发板上独立运行门户
-
-明确需要板端本地控制台时，可以在 Debian 系 RK 开发板上执行相同的启动与 systemd
-命令，安装板端实际需要的传输工具，并选择板上已有的非 root 用户。此时本地文件窗格、
-本地终端、自动发现、密钥与审计数据都属于开发板本身。不要通过 ADB 端口转发把这种模式
-当作默认的 PC 上位机控制台。
-
 ## HTTP API
 
 门户提供 `/api/*` 接口：健康检查、自动发现、设备管理、文件传输、命令执行、监控/
@@ -150,3 +143,15 @@ sudo ./deploy/install.sh portal --user "$USER" --tls-nginx portal.example.com \
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+## 版本与发布
+
+rkcockpit 当前使用 `0.x.y` 语义化版本。版本以质量和就绪状态为准，次版本目标节奏
+约为 4–8 周。分支、标签、兼容性、支持范围和发布说明要求见
+[版本与发布策略](docs/RELEASES.zh-CN.md)。
+
+## 参与贡献
+
+欢迎参与贡献！带有 `good first issue` 标签的议题很适合作为起点。对于范围较大的
+改动，请先创建 Issue 以便对齐范围。详情请参阅
+[CONTRIBUTING.md](CONTRIBUTING.md)。

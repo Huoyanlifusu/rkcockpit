@@ -17,17 +17,11 @@ contributions are easy to review and land.
 ## Local development
 
 ```bash
-python3 -m unittest discover -s tests   # run the suite (180 tests)
+python3 -m unittest discover -s tests   # run the suite
 python3 -m portal.portal --sim          # smoke-run on http://127.0.0.1:8080
 ```
 
 `node --check static/js/pages/<page>.js` for each frontend file you touch.
-
-## Good first issues
-
-Look for the [`good first issue`](https://github.com/Huoyanlifusu/rkcockpit/issues?q=is%3Aopen+label%3A%22good+first+issue%22)
-label. If you find a bug or want a feature, open an issue first - we move fast
-and want to avoid wasted work.
 
 ## Commit & PR
 
@@ -39,3 +33,12 @@ and want to avoid wasted work.
 - Tests must stay green (`python3 -m unittest discover -s tests`).
 - Review and required CI/test evidence must pass before the pull request is
   merged. Sign-off is not required.
+
+## Branch and release flow
+
+- Open feature and fix pull requests against `dev`.
+- Release pull requests promote tested changes from `dev` to `main`.
+- Release tags are created from `main`.
+- Hotfixes based on `main` must also be merged back into `dev`.
+
+See [Release and Versioning Policy](docs/RELEASE.md).

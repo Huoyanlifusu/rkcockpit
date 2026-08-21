@@ -7,7 +7,7 @@
 [中文版](README.zh-CN.md)
 
 rkcockpit is a **zero-dependency** web operations console for Rockchip (RK)
-devices — RK3588 / RK3568 / RV1126 and friends — reachable over SSH, ADB, or
+devices (e.g. RK3588 / RK3568 / RV1126 and friends) reachable over SSH, ADB, or
 locally. Device management, XFTP-style dual-pane file transfer, web terminal,
 system monitoring, process control, camera stream tests, peripherals
 enumeration (I2C/GPIO/PWM/SPI/UART/clk/watchdog/regulator/DMA), batch deploy,
@@ -159,15 +159,6 @@ portal process merely to be managed by the PC.
 - Token authentication does **not** encrypt HTTP traffic. Keep port 8080 on
   loopback and use the documented HTTPS proxy, an SSH tunnel, or a VPN.
 
-### Optional standalone portal on a board
-
-The same launch and systemd commands can run on a Debian-based RK board when a
-board-local console is explicitly wanted. Install the required transport tools
-on that board and select one of its existing non-root users. Remember that its
-local file pane, local terminal, discovery, keys, and audit data then belong to
-the board itself. Do not use an ADB port forward to present this mode as the
-default PC-hosted console.
-
 ## HTTP API
 
 The portal exposes `/api/*` endpoints for health, discovery, devices, file
@@ -183,15 +174,16 @@ public; all other API routes require the session cookie or Bearer token.
 python3 -m unittest discover -s tests
 ```
 
+## Releases and Versioning
+
+rkcockpit currently uses the `0.x.y` Semantic Versioning series. Releases are
+readiness-based, with minor releases targeted approximately every 4–8 weeks.
+
+See the [release and versioning policy](docs/RELEASE.md) for branch, tag,
+compatibility, support, and release-note requirements.
+
 ## Contributing
 
-Contributions are welcome! Issues labeled
-[`good first issue`](https://github.com/Huoyanlifusu/rkcockpit/issues?q=is%3Aopen+label%3A%22good+first+issue%22)
-are a friendly starting point. For anything larger, please open an issue first
+Contributions are welcome! Issues labeled `good first issue` are a friendly
+starting point. For anything larger, please open an issue first
 to align on scope. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Roadmap
-
-- Live camera preview (stream GMSL/MIPI video to the browser)
-- Per-device RBAC for write actions
-- GitHub Actions CI + coverage badge
