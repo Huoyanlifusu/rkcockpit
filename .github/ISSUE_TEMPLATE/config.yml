@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions & discussion
+    url: https://github.com/Huoyanlifusu/rkcockpit/discussions
+    about: Ask here instead of opening an issue.

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RK 设备运维控制台</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">RK-OPS</span>
+    <h1>RK 设备运维控制台</h1>
+  </div>
+  <button id="language-toggle" class="btn" type="button" aria-label="Switch language">English</button>
+</header>
+
+<div id="auth-modal" class="modal-mask" style="display:none">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <h3 id="auth-title">管理员登录</h3>
+    <p class="muted">请输入部署时生成的访问令牌。令牌不会保存在浏览器存储中。</p>
+    <div class="row"><label>访问令牌</label>
+      <input id="auth-token" type="password" autocomplete="current-password">
+    </div>
+    <div id="auth-error" class="error-bar"></div>
+    <div class="toolbar"><button id="auth-submit" class="btn">登录</button></div>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="sidebar">
+    <details class="nav-group" open>
+      <summary>设备</summary>
+      <button class="tab active" data-tab="devices">设备管理</button>
+      <button class="tab" data-tab="files">文件管理</button>
+      <button class="tab" data-tab="term">终端</button>
+    </details>
+    <details class="nav-group">
+      <summary>监控运维</summary>
+      <button class="tab" data-tab="monitor">监控</button>
+      <button class="tab" data-tab="process">进程</button>
+      <button class="tab" data-tab="diag">诊断</button>
+      <button class="tab" data-tab="peripherals">外设</button>
+      <button class="tab" data-tab="agent">智能 Agent</button>
+      <button class="tab" data-tab="logcenter">日志中心</button>
+    </details>
+    <details class="nav-group">
+      <summary>管理</summary>
+      <button class="tab" data-tab="keys">密钥</button>
+      <button class="tab" data-tab="groups">分组</button>
+      <button class="tab" data-tab="audit">审计</button>
+    </details>
+  </nav>
+  <main>
+  <section id="tab-devices" class="pane active">
+    <div class="toolbar">
+      <button id="dev-add" class="btn">新增设备</button>
+      <button id="dev-discover" class="btn">自动发现</button>
+      <button id="dev-refresh" class="btn">刷新</button>
+      <span id="host-env" class="muted"></span>
+    </div>
+    <div id="dev-error"></div>
+    <div class="panel">
+      <table class="fm-table" id="dev-table">
+        <thead><tr><th>名称</th><th>类型</th><th>地址</th><th>认证</th><th>备注</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="dev-check-result" class="panel" style="display:none"></div>
+    <div id="dev-discover-box" class="panel" style="display:none"></div>
+    <div id="dev-modal" class="modal-mask" style="display:none">
+      <div class="modal">
+        <h3 id="dev-modal-title">新增设备</h3>
+        <div class="row"><label>名称 *</label><input id="dev-f-name"></div>
+        <div class="row"><label>类型 *</label>
+          <select id="dev-f-type">
+            <option value="ssh">SSH</option>
+            <option value="adb">ADB</option>
+            <option value="local">Local（模拟）</option>
+          </select>
+        </div>
+        <div class="row"><label>地址 *</label><input id="dev-f-host" placeholder="ssh: IP / adb: serial"></div>
+        <div class="row"><label>端口</label><input id="dev-f-port" type="number" value="22"></div>
+        <div class="row"><label>用户</label><input id="dev-f-user" value="root"></div>
+        <div class="row"><label>认证</label>
+          <select id="dev-f-auth"><option value="key">密钥</option><option value="password">密码</option></select>
+        </div>
+        <div class="row" id="dev-f-pw-row"><label>密码</label><input id="dev-f-password" type="password" placeholder="留空=不修改"></div>
+        <div class="row" id="dev-f-root-row" style="display:none"><label>本地根目录</label><input id="dev-f-root" placeholder="~/.rkss/demo-remote"></div>
+        <div class="row"><label>备注</label><input id="dev-f-remark"></div>
+        <div class="toolbar">
+          <button id="dev-save" class="btn">保存</button>
+          <button id="dev-cancel" class="btn">取消</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-files" class="pane">
+    <div class="toolbar">
+      <label>设备 <select id="fm-device"></select></label>
+      <button id="fm-refresh" class="btn">刷新</button>
+      <label><input type="checkbox" id="fm-hidden"> 显示隐藏</label>
+      <button id="fm-mkdir" class="btn">新建文件夹</button>
+      <button id="fm-upload" class="btn">上传文件…</button>
+      <input type="file" id="fm-file" style="display:none" multiple>
+      <button id="fm-jobs-toggle" class="btn">传输任务</button>
+    </div>
+    <div id="fm-error"></div>
+    <div id="fm-jobs" class="panel" style="display:none"></div>
+    <div class="panes">
+      <div class="pane-box" id="pane-local">
+        <h3>上位机本地（local）</h3>
+        <div class="fm-crumbs" id="fm-crumbs-local"></div>
+        <div class="fm-path">
+          <button class="btn" data-up="local">上级</button>
+          <button class="btn" data-newdir="local">新建</button>
+          <button class="btn" data-ren="local">重命名</button>
+          <button class="btn danger" data-del="local">删除</button>
+        </div>
+        <div class="fm-wrap"><table class="fm-table"><thead><tr><th></th><th>名称</th><th>大小</th><th>修改时间</th><th>权限</th></tr></thead><tbody id="fm-tb-local"></tbody></table></div>
+      </div>
+      <div class="fm-mid">
+        <button id="fm-to-device" class="btn">→ 上传到设备</button>
+        <button id="fm-to-host" class="btn">← 下载到上位机</button>
+      </div>
+      <div class="pane-box" id="pane-remote">
+        <h3>板卡 <span id="fm-remote-name">-</span></h3>
+        <div class="fm-crumbs" id="fm-crumbs-remote"></div>
+        <div class="fm-path">
+          <button class="btn" data-up="remote">上级</button>
+          <button class="btn" data-newdir="remote">新建</button>
+          <button class="btn" data-ren="remote">重命名</button>
+          <button class="btn danger" data-del="remote">删除</button>
+          <button class="btn" data-chmod="remote">chmod</button>
+        </div>
+        <div class="fm-wrap"><table class="fm-table"><thead><tr><th></th><th>名称</th><th>大小</th><th>修改时间</th><th>权限</th></tr></thead><tbody id="fm-tb-remote"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-term" class="pane">
+    <div class="toolbar">
+      <label>设备 <select id="term-device"></select></label>
+      <button class="btn chip" data-cmd="uname -a">uname -a</button>
+      <button class="btn chip" data-cmd="df -h">df -h</button>
+      <button class="btn chip" data-cmd="free -m">free -m</button>
+      <button class="btn chip" data-cmd="ls /dev/video*">ls /dev/video*</button>
+      <button class="btn chip" data-cmd="dmesg | tail -30">dmesg|tail</button>
+      <button class="btn chip" data-cmd="cat /proc/cpuinfo | grep -c processor">cpu核数</button>
+      <span id="term-status" class="muted"></span>
+    </div>
+    <div class="toolbar">
+      <input id="term-cmd" type="text" placeholder="输入命令，回车执行（↑↓ 历史）">
+      <button id="term-run" class="btn">运行</button>
+      <button id="term-kill" class="btn danger">终止</button>
+      <button id="term-clear" class="btn">清空</button>
+    </div>
+    <pre id="term-view" class="term-view"></pre>
+  </section>
+
+  <section id="tab-monitor" class="pane">
+    <div class="toolbar">
+      <label>设备 <select id="mon-device"></select></label>
+      <label>窗口
+        <select id="mon-window">
+          <option value="60">60s</option>
+          <option value="180" selected>3min</option>
+          <option value="300">10min</option>
+        </select>
+      </label>
+      <button id="mon-toggle" class="btn">开始采样</button>
+      <span id="mon-summary" class="muted"></span>
+    </div>
+    <div id="mon-error"></div>
+    <div class="mon-main"><canvas id="mon-cpu"></canvas></div>
+    <div class="mon-sub">
+      <div class="panel"><h2>内存</h2><canvas id="mon-mem"></canvas></div>
+      <div class="panel"><h2>温度</h2><canvas id="mon-temp"></canvas></div>
+      <div class="panel"><h2>负载</h2><canvas id="mon-load"></canvas></div>
+    </div>
+  </section>
+
+  <section id="tab-process" class="pane">
+    <div class="toolbar">
+      <label>设备 <select id="proc-device"></select></label>
+      <input id="proc-search" type="text" placeholder="搜索命令…">
+      <label>排序
+        <select id="proc-sort">
+          <option value="cpu" selected>CPU</option>
+          <option value="mem">MEM</option>
+          <option value="pid">PID</option>
+        </select>
+      </label>
+      <label>顺序
+        <select id="proc-order">
+          <option value="desc" selected>降序</option>
+          <option value="asc">升序</option>
+        </select>
+      </label>
+      <span id="proc-total" class="muted"></span>
+    </div>
+    <div id="proc-error"></div>
+    <div class="panel">
+      <table class="fm-table" id="proc-table">
+        <thead><tr><th>PID</th><th>PPID</th><th>STAT</th><th>CPU%</th><th>MEM%</th><th>RSS</th><th>命令</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="proc-modal" class="modal-mask" style="display:none">
+      <div class="modal">
+        <h3 id="proc-modal-title">进程详情</h3>
+        <div id="proc-modal-kv" class="kv"></div>
+        <div class="toolbar">
+          <button id="proc-close" class="btn">关闭</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-diag" class="pane">
+    <div class="toolbar">
+      <label>设备 <select id="diag-device"></select></label>
+    </div>
+    <div id="diag-error"></div>
+    <div class="panel">
+      <h2>dmesg</h2>
+      <div class="toolbar">
+        <label>行数 <input id="diag-lines" type="number" value="200" min="1" max="2000"></label>
+        <label>过滤 <input id="diag-filter" type="text" placeholder="如 error / video / i2c / gpio / pwm / spi / uart / clk / watchdog / regulator / dma"></label>
+        <button id="diag-refresh" class="btn">刷新</button>
+        <label><input type="checkbox" id="diag-follow"> 自动跟随</label>
+      </div>
+      <pre id="diag-dmesg" class="log-view"></pre>
+    </div>
+  </section>
+
+  <section id="tab-peripherals" class="pane">
+    <div class="toolbar">
+      <label>设备 <select id="periph-device"></select></label>
+      <span class="muted">只读枚举（各面板结果缓存 10s，无任何写操作）</span>
+    </div>
+    <div id="periph-error"></div>
+    <div class="grid">
+      <div class="panel">
+        <h2>video 设备</h2>
+        <div id="periph-video"></div>
+      </div>
+      <div class="panel">
+        <h2>USB 设备</h2>
+        <div id="periph-usb"></div>
+      </div>
+      <div class="panel">
+        <h2>I2C 总线</h2>
+        <div id="periph-i2c"></div>
+      </div>
+      <div class="panel">
+        <h2>GPIO</h2>
+        <div id="periph-gpio"></div>
+      </div>
+      <div class="panel">
+        <h2>PWM</h2>
+        <div id="periph-pwm"></div>
+      </div>
+      <div class="panel">
+        <h2>SPI</h2>
+        <div id="periph-spi"></div>
+      </div>
+      <div class="panel">
+        <h2>UART 串口</h2>
+        <div id="periph-uart"></div>
+      </div>
+      <div class="panel">
+        <h2>时钟 clk</h2>
+        <div id="periph-clk"></div>
+      </div>
+      <div class="panel">
+        <h2>看门狗 watchdog</h2>
+        <div id="periph-watchdog"></div>
+      </div>
+      <div class="panel">
+        <h2>电源 regulator</h2>
+        <div id="periph-regulator"></div>
+      </div>
+      <div class="panel">
+        <h2>DMA 通道</h2>
+        <div id="periph-dma"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-agent" class="pane">
+    <div class="toolbar">
+      <label>设备 <select id="agent-device"></select></label>
+      <button id="agent-new" class="btn">新建会话</button>
+      <button id="agent-refresh" class="btn">刷新</button>
+      <span id="agent-tools" class="muted"></span>
+    </div>
+    <div id="agent-error"></div>
+    <div id="agent-banner" class="error-bar" style="display:none"></div>
+    <div class="panes">
+      <div class="pane-box" style="flex:0 0 260px;min-width:260px">
+        <h3>会话 <span id="agent-sess-count" class="muted"></span></h3>
+        <div id="agent-sessions" style="overflow:auto;flex:1"></div>
+      </div>
+      <div class="pane-box">
+        <h3 id="agent-title">未选择会话</h3>
+        <div id="agent-messages" style="flex:1;overflow:auto;padding:10px 14px;
+             display:flex;flex-direction:column;min-height:240px"></div>
+        <div class="toolbar" style="margin:10px 12px">
+          <textarea id="agent-msg" rows="2" style="flex:1"
+            placeholder="输入问题，Enter 发送（Shift+Enter 换行）"></textarea>
+          <button id="agent-send" class="btn">发送</button>
+          <button id="agent-clear" class="btn">清空</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-audit" class="pane">
+    <div class="toolbar">
+      <label>动作 <select id="aud-action"></select></label>
+      <label>设备 <select id="aud-device"></select></label>
+      <label>结果
+        <select id="aud-result">
+          <option value="">全部</option>
+          <option value="ok">ok</option>
+          <option value="fail">fail</option>
+        </select>
+      </label>
+      <label>时间范围
+        <select id="aud-range">
+          <option value="1h">最近 1h</option>
+          <option value="24h" selected>最近 24h</option>
+          <option value="7d">最近 7d</option>
+        </select>
+      </label>
+      <a id="aud-export" class="btn" download="audit.csv">导出 CSV</a>
+      <span id="aud-total" class="muted"></span>
+    </div>
+    <div id="aud-error"></div>
+    <div class="panel">
+      <table class="fm-table" id="aud-table">
+        <thead><tr><th>时间</th><th>动作</th><th>设备</th><th>目标</th><th>详情</th><th>结果</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-keys" class="pane"></section>
+
+  <section id="tab-groups" class="pane"></section>
+
+  <section id="tab-logcenter" class="pane"></section>
+
+  </main>
+</div>
+
+<footer class="muted">
+  RK 设备运维控制台 · 门户 :8080 · SSH/ADB 设备管理
+</footer>
+<script src="/static/js/core/i18n.js"></script>
+<script src="/static/js/core/dom.js"></script>
+<script src="/static/js/core/auth.js"></script>
+<script src="/static/js/core/api.js"></script>
+<script src="/static/js/core/ui.js"></script>
+<script src="/static/js/core/state.js"></script>
+<script src="/static/js/charts/line.js"></script>
+<script src="/static/js/pages/devices.js"></script>
+<script src="/static/js/pages/files.js"></script>
+<script src="/static/js/pages/term.js"></script>
+<script src="/static/js/pages/monitor.js"></script>
+<script src="/static/js/pages/process.js"></script>
+<script src="/static/js/pages/diag.js"></script>
+<script src="/static/js/pages/peripherals.js"></script>
+<script src="/static/js/pages/agent.js"></script>
+<script src="/static/js/pages/audit.js"></script>
+<script src="/static/js/pages/keys.js"></script>
+<script src="/static/js/pages/groups.js"></script>
+<script src="/static/js/pages/logcenter.js"></script>
+<script src="/static/js/main.js"></script>
+</body>
+</html>

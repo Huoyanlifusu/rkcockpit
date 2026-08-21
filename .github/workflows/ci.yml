@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  syntax:
+    name: Python and JavaScript syntax checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Compile Python sources
+        run: python -m compileall -q host portal deploy
+
+      - name: Check JavaScript syntax
+        run: find static/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
+  test:
+    name: Python ${{ matrix.python-version }} unittest suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Provide a deterministic USB fixture
+        run: |
+          fixture_dir="$RUNNER_TEMP/rkcockpit-ci-bin"
+          mkdir -p "$fixture_dir"
+          printf '%s\n' '#!/bin/sh' \
+            'echo "Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub"' \
+            > "$fixture_dir/lsusb"
+          chmod +x "$fixture_dir/lsusb"
+          echo "$fixture_dir" >> "$GITHUB_PATH"
+
+      - name: Run the unittest suite
+        env:
+          NO_PROXY: 127.0.0.1,localhost
+        run: python -m unittest discover -s tests -p 'test*.py'

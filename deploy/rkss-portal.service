@@ -1,0 +1,24 @@
+[Unit]
+Description=rkss-portal: RK device operations console
+After=network.target
+
+[Service]
+Type=simple
+User=@RKSS_USER@
+Group=@RKSS_GROUP@
+Environment="HOME=@RKSS_HOME@"
+EnvironmentFile=-/etc/rkss-portal/portal.env
+ExecStart=/usr/bin/python3 /opt/rkss-webui/current/portal/portal.py --bind 127.0.0.1 --port 8080 "--conf-dir=@RKSS_CONF_DIR@" --auth-token-file /etc/rkss-portal/auth-token $RKSS_EXTERNAL_HTTPS
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
